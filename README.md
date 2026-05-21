@@ -27,6 +27,12 @@ Ele cria ou atualiza:
 - `zabbix/env_vars/.env_agent`
 - `zabbix/env_vars/proxy.psk`
 
+Depois disso, o script ja executa `docker compose up -d --force-recreate`, aguarda o agent iniciar e valida:
+
+- `Hostname` do agent
+- `agent.hostname`
+- `zabbix.stats[,,queue]`
+
 O parametro `--force-psk` gera uma PSK nova. Copie o valor exibido no final do script e cole no proxy correspondente no frontend do Zabbix.
 
 Depois cadastre no frontend do Zabbix:
@@ -36,7 +42,9 @@ Depois cadastre no frontend do Zabbix:
 - TLS PSK: conteudo de `zabbix/env_vars/proxy.psk`
 - Host monitorado pelo agent: mesmo valor de `--agent-hostname`
 
-Suba a stack:
+Se quiser somente gerar os arquivos sem subir a stack, use `--no-compose`.
+
+Para subir manualmente depois:
 
 ```bash
 docker compose up -d
