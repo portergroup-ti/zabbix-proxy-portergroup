@@ -2,3 +2,4 @@ zabbix/env_vars/.env_*
 zabbix/env_vars/proxy.psk
 !zabbix/env_vars/*.example
 zabbix/Fotos/
+zabbix/zbx_env/
