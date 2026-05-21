@@ -1,0 +1,91 @@
+services:
+ zabbix-proxy-mysql:
+  image: zabbix/zabbix-proxy-mysql:alpine-7.0-latest
+  restart: always
+  ports:
+   - "10051:10051"
+   - "10050:10050"
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - /etc/timezone:/etc/timezone:ro
+   - ./zabbix/zbx_env/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
+   - ./zabbix/zbx_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
+   - ./zabbix/zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+   - ./zabbix/env_vars:/var/lib/zabbix/ssh_keys:ro
+   - ./zabbix/zbx_env/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
+   - snmptraps:/var/lib/zabbix/snmptraps:rw
+  ulimits:
+   nproc: 65535
+   nofile:
+    soft: 20000
+    hard: 40000
+  env_file:
+   - ./zabbix/env_vars/.env_prx
+   - ./zabbix/env_vars/.env_prx_mysql
+  networks:
+   zbx_net_backend:
+    aliases:
+     - zabbix-proxy-mysql
+     - zabbix-proxy-alpine-mysql
+     - zabbix-proxy-mysql-alpine
+     - zabbix-proxy-sqlite3
+   zbx_net_frontend:
+  stop_grace_period: 30s
+  labels:
+   com.zabbix.description: "Zabbix proxy with MySQL/MariaDB database support"
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-proxy"
+   com.zabbix.dbtype: "mysql"
+   com.zabbix.os: "alpine"
+  depends_on:
+   - zabbix-proxy-db
+
+ zabbix-proxy-db:
+  image: mariadb:10.11
+  restart: always
+  env_file:
+   - ./zabbix/env_vars/.env_prx_mysql
+  volumes:
+   - zabbix_proxy_mysqldata:/var/lib/mysql
+   - ./zabbix/mariadb.cnf:/etc/mysql/conf.d/zabbix.cnf:ro
+  networks:
+   zbx_net_backend:
+  stop_grace_period: 30s
+
+ zabbix-agent:
+  image: zabbix/zabbix-agent:alpine-7.0-latest
+  restart: always
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - /etc/timezone:/etc/timezone:ro
+   - ./zabbix/zbx_env/etc/zabbix/zabbix_agentd.d:/etc/zabbix/zabbix_agentd.d:ro
+   - ./zabbix/zbx_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
+   - ./zabbix/zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+   - ./zabbix/zbx_env/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+  env_file:
+   - ./zabbix/env_vars/.env_agent
+  privileged: true
+  pid: "host"
+  network_mode: "service:zabbix-proxy-mysql"
+  stop_grace_period: 5s
+  depends_on:
+   - zabbix-proxy-mysql
+  labels:
+   com.zabbix.description: "Zabbix agent"
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-agentd"
+   com.zabbix.os: "alpine"
+
+networks:
+  zbx_net_frontend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+  zbx_net_backend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    internal: true
+volumes:
+  snmptraps:
+  zabbix_proxy_mysqldata:
